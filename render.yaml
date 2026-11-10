@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: guess-game-ziad
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: APP_PASSCODE
+        value: "8975522"

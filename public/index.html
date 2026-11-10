@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>لعبة التخمين الجماعية | Guessing Game</title>
+  
+  <!-- إعدادات تطبيق الويب للهواتف (PWA / iOS / Android) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="لعبة التخمين">
+  <meta name="theme-color" content="#0b0f19">
+  <meta name="description" content="لعبة التخمين الجماعية التفاعلية الممتعة بين لاعبين بالوقت الحقيقي">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦁</text></svg>">
+  
+  <!-- ملف التنسيق -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- كانفاس الألعاب النارية والاحتفال عند كشف الصورة -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- إشعار عائم Toast -->
+  <div class="toast-notice" id="toastNotice">
+    <span>ℹ️</span> <span>مرحباً بك في لعبة التخمين!</span>
+  </div>
+
+  <div class="app-container">
+
+    <!-- شريط علوي بارز: زياد الربيعي وزر التثبيت -->
+    <div class="creator-top-bar">
+      <div class="creator-badge">
+        <span class="creator-icon">👑</span>
+        <span class="creator-label">بإشراف وتطوير:</span>
+        <strong class="creator-name">زياد الربيعي</strong>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button id="btnInstallApp" class="creator-install-pill" title="تثبيت اللعبة في هاتفك">
+          <span>📲 تثبيت اللعبة</span>
+        </button>
+        <a href="tel:7765496038" class="creator-phone-pill" title="اتصال">
+          <span class="phone-icon">📞</span>
+          <span class="phone-val" dir="ltr">7765496038</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- شريط الرأس العلوي -->
+    <header class="app-header">
+      <div class="logo-group">
+        <span class="logo-icon">🦁</span>
+        <div class="logo-text">
+          <h1>لعبة التخمين</h1>
+          <span class="logo-author">زياد الربيعي • 7765496038</span>
+        </div>
+      </div>
+      <div class="room-badge" id="headerRoomBadge" style="display: none;">
+        غرفة: <span class="code-highlight">----</span>
+      </div>
+    </header>
+
+    <!-- شريط لوحة نتائج المباراة (3 نقاط للفوز) -->
+    <div class="match-scoreboard" id="matchScoreboard" style="display: none;">
+      <div class="score-player" id="scorePlayer1Box">
+        <span class="sp-avatar" id="sp1Avatar">🦁</span>
+        <span class="sp-name" id="sp1Name">الماستر</span>
+        <span class="sp-points" id="sp1Points">0</span>
+      </div>
+      <div class="score-vs-center">
+        <span class="vs-trophy">🏆</span>
+        <span class="vs-target">المباراة من 3 نقاط</span>
+      </div>
+      <div class="score-player" id="scorePlayer2Box">
+        <span class="sp-points" id="sp2Points">0</span>
+        <span class="sp-name" id="sp2Name">المنافس</span>
+        <span class="sp-avatar" id="sp2Avatar">🦊</span>
+      </div>
+    </div>
+
+    <!-- 0. شاشة بوابة الدخول بالرمز السري (Passcode Gate Screen) -->
+    <section class="screen active" id="passcodeGateScreen">
+      <div class="hero-box" style="margin-top: 16px;">
+        <div style="font-size: 52px; margin-bottom: 8px; filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.6));">🔐</div>
+        <h2>بوابة الدخول المحمية</h2>
+        <p>تطبيق لعبة التخمين • بإشراف وتطوير زياد الربيعي</p>
+      </div>
+
+      <div class="glass-card" style="text-align: center; padding: 24px 18px;">
+        <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 16px; line-height: 1.6;">
+          هذا التطبيق محمي برمز دخول سري خاص.<br>
+          يرجى إدخال الرمز السري للمتابعة:
+        </div>
+
+        <div class="passcode-input-wrap">
+          <input type="password" id="inputAppPasscode" class="input-field passcode-input" placeholder="أدخل الرمز السري..." maxlength="24" />
+          <button type="button" class="btn-toggle-eye" id="btnTogglePasscodeEye" title="إظهار/إخفاء">👁️</button>
+        </div>
+
+        <div id="passcodeErrorMsg" class="passcode-error-msg" style="display: none;">
+          ❌ الرمز السري غير صحيح، يرجى التأكد والمحاولة مجدداً!
+        </div>
+
+        <button class="btn btn-gold" id="btnVerifyPasscode" style="margin-top: 10px;">
+          <span>تأكيد الدخول للعبة</span>
+          <span>🚀</span>
+        </button>
+
+        <div style="margin-top: 22px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 11px; color: #94a3b8;">
+          لطلب رمز الدخول الخاص، يرجى التواصل مع:<br>
+          <strong style="color: #fbbf24; font-size: 13px;">زياد الربيعي • 📞 7765496038</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1. شاشة البداية وإنشاء/الانضمام للغرفة (Lobby Screen) -->
+    <section class="screen" id="lobbyScreen">
+      <div class="hero-box">
+        <h2>مرحباً بك في التحدي! 🎯</h2>
+        <p>الماستر يختار الصورة، والمنافس يسأل بـ (نعم/لا). معك 3 محاولات تخمين فقط، ومن يحصل على 3 نقاط يفوز بالمباراة!</p>
+      </div>
+
+      <div class="glass-card">
+        <!-- اختيار الأفاتار -->
+        <div class="avatar-section">
+          <label class="section-label">اختر شخصيتك الكرتونية:</label>
+          <div class="avatar-grid">
+            <button class="avatar-btn selected" data-avatar="🦁">🦁</button>
+            <button class="avatar-btn" data-avatar="🦊">🦊</button>
+            <button class="avatar-btn" data-avatar="🐼">🐼</button>
+            <button class="avatar-btn" data-avatar="🦅">🦅</button>
+            <button class="avatar-btn" data-avatar="🐬">🐬</button>
+            <button class="avatar-btn" data-avatar="🐨">🐨</button>
+            <button class="avatar-btn" data-avatar="🐺">🐺</button>
+            <button class="avatar-btn" data-avatar="🐯">🐯</button>
+          </div>
+        </div>
+
+        <!-- اسم اللاعب -->
+        <label class="section-label" for="playerNameInput">اسمك في اللعبة:</label>
+        <input type="text" id="playerNameInput" class="input-field" placeholder="اكتب اسمك هنا (مثال: أحمد)" maxlength="16" />
+
+        <!-- تبويبات إنشاء أو انضمام -->
+        <div class="tabs-nav" id="lobbyTabsNav">
+          <button class="tab-btn active" id="tabCreateRoom">إنشاء غرفة جديدة 👑</button>
+          <button class="tab-btn" id="tabJoinRoom">الانضمام برمز 🔑</button>
+        </div>
+
+        <!-- صندوق إنشاء الغرفة (الماستر) -->
+        <div id="createRoomBox">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px; text-align: center;">
+            ستكون أنت الماستر وتقوم باختيار الصورة وقفلها ليتحدى صديقك في تخمينها.
+          </p>
+          <button class="btn btn-primary" id="btnCreateRoom">
+            <span>إنشاء الغرفة ومشاركة الرابط</span>
+            <span>🚀</span>
+          </button>
+        </div>
+
+        <!-- صندوق الانضمام برمز (المخمن) -->
+        <div id="joinRoomBox" style="display: none;">
+          <label class="section-label" for="joinRoomInput">أدخل رمز الغرفة (4 خانات):</label>
+          <input type="text" id="joinRoomInput" class="input-field" placeholder="مثال: A7B2" maxlength="4" style="text-transform: uppercase; font-weight: 800; letter-spacing: 2px; text-align: center;" />
+          <button class="btn btn-success" id="btnJoinRoom">
+            <span>انضمام للمنافسة</span>
+            <span>🎮</span>
+          </button>
+        </div>
+
+        <!-- صندوق انتظار انضمام المنافس (يظهر للماستر بعد الإنشاء) -->
+        <div id="waitingPlayerBox" style="display: none;" class="waiting-box">
+          <div class="pulse-loader">⏳</div>
+          <h3 style="font-size: 18px; margin-bottom: 6px;">في انتظار انضمام المنافس...</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">شارك رمز الغرفة أو الرابط مع صديقك لبدء اللعبة فوراً:</p>
+
+          <div class="share-code-box">
+            <span style="font-size: 12px; color: var(--text-muted);">مفتاح الدخول:</span>
+            <div class="big-code" id="displayRoomCode">----</div>
+          </div>
+
+          <div class="share-buttons">
+            <button class="btn btn-secondary" id="btnCopyCode" style="flex: 1;">
+              <span>نسخ الرمز</span> 📋
+            </button>
+            <button class="btn btn-primary" id="btnShareLink" style="flex: 1;">
+              <span>مشاركة الرابط</span> 🔗
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. شاشة اختيار الماستر للصورة (Choosing Screen) -->
+    <section class="screen" id="choosingScreen">
+      <!-- للمنافس في حالة الانتظار -->
+      <div id="guesserWaitingChoiceView" class="glass-card" style="display: none; text-align: center; padding: 40px 20px;">
+        <div class="pulse-loader">🔒</div>
+        <h3 style="font-size: 19px; margin-bottom: 8px;">الماستر يختار الصورة السرية...</h3>
+        <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">
+          استعد! بمجرد أن يقفل الماستر الصورة، ستبدأ بطرح الأسئلة الذكية لاكتشافها!
+        </p>
+      </div>
+
+      <!-- للماستر لاختيار الصورة -->
+      <div id="masterChoosingView" class="glass-card" style="display: none;">
+        <div class="choosing-header">
+          <h3>حدد الصورة السرية واقفلها 🔒</h3>
+          <p>اختر حيواناً من المكتبة أو ارفع أي صورة من هاتفك:</p>
+        </div>
+
+        <div class="tabs-nav">
+          <button class="tab-btn active" id="tabPresetAnimals">مكتبة الحيوانات (20+) 🦁</button>
+          <button class="tab-btn" id="tabCustomUpload">رفع صورة من هاتفك 📷</button>
+        </div>
+
+        <!-- تبويب 1: مكتبة الحيوانات -->
+        <div id="presetAnimalsView">
+          <div class="animals-grid" id="animalsGrid">
+            <!-- تتولد بطاقات الحيوانات تلقائياً من animals.js -->
+          </div>
+        </div>
+
+        <!-- تبويب 2: رفع صورة مخصصة -->
+        <div id="customUploadView" style="display: none;">
+          <input type="file" id="customImageInput" accept="image/*" style="display: none;" />
+          
+          <div class="upload-card-box" id="uploadDropBox">
+            <div class="upload-preview-wrap" id="uploadPreviewWrap">
+              <img id="uploadPreviewImg" src="" alt="المعاينة" />
+            </div>
+            <div style="font-size: 32px; margin-bottom: 6px;">📸</div>
+            <div style="font-weight: 700; font-size: 14px;">اضغط لاختيار صورة من الاستوديو أو الكاميرا</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">يدعم جميع صيغ الصور (PNG, JPG)</div>
+          </div>
+
+          <label class="section-label" for="customNameInput">اسم الشيء أو الحيوان:</label>
+          <input type="text" id="customNameInput" class="input-field" placeholder="اكتب اسم الشيء بدقة (مثال: نسر، قطة، دولفين)" />
+        </div>
+
+        <!-- زر القفل النهائي -->
+        <div style="margin-top: 16px;">
+          <button class="btn btn-success" id="btnConfirmSecret">
+            <span>قفل الصورة وبدء التحدي</span>
+            <span>🔒</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. شاشة اللعب النشطة والأسئلة (Playing Screen) -->
+    <section class="screen" id="playingScreen">
+      <!-- شريط معلومات الجولة ومحاولات التخمين -->
+      <div class="game-info-banner">
+        <div class="player-tag">
+          <span id="myRoleBadge" class="role-pill role-master">أنت الماستر 👑</span>
+        </div>
+        
+        <!-- عداد محاولات التخمين الثلاث -->
+        <div class="guesses-left-container" id="guessesLeftContainer" title="محاولات التخمين المتبقية">
+          <span class="guesses-label">المحاولات:</span>
+          <span class="guesses-hearts" id="guessesHearts">❤️❤️❤️</span>
+          <span class="guesses-num" id="guessesNum">(3/3)</span>
+        </div>
+
+        <div id="questionsCountBadge" style="font-weight: 800; color: #fbbf24;">
+          الأسئلة: 0
+        </div>
+      </div>
+
+      <!-- بطاقة الصورة السرية ثلاثية الأبعاد (مقفلة للمخمن ومكشوفة للماستر) -->
+      <div class="secret-stage-card locked" id="secretStageCard">
+        <img id="secretStageImg" class="secret-stage-img" src="" alt="الصورة السرية" />
+        
+        <!-- طبقة القفل للمخمن -->
+        <div class="lock-overlay" id="lockOverlay">
+          <div class="lock-icon-giant">🔒</div>
+          <div class="lock-status-text">الصورة مقفولة - خمن الاسم!</div>
+          <span style="font-size: 12px; color: #94a3b8; margin-top: 4px;">اطرح أسئلة (نعم / لا) - لديك 3 محاولات فقط</span>
+        </div>
+
+        <!-- شريط تعريف الصورة (للماستر فقط أثناء اللعب) -->
+        <div class="secret-title-badge" id="secretTitleBadge" style="display: none;">
+          <span style="font-weight: 700;">السر: <span id="secretNameText" style="color: #34d399;">--</span></span>
+          <span style="font-size: 11px; color: var(--text-muted);">(معلوم لك فقط)</span>
+        </div>
+      </div>
+
+      <!-- شريط الأسئلة السريعة (مقفلة كمساعدة بموافقة الماستر فقط) -->
+      <div class="quick-questions-strip" id="quickQuestionsStrip">
+        <!-- حالة القفل / طلب المساعدة -->
+        <div class="hint-request-box" id="hintRequestBox">
+          <div class="hint-info-text">
+            <span>🔒 الأسئلة المقترحة مقفلة (تعتبر مساعدة تتطلب موافقة الماستر)</span>
+          </div>
+          <button class="btn btn-hint" id="btnRequestHint">
+            <span>💡 طلب مساعدة (كشف الأسئلة بموافقة الماستر)</span>
+          </button>
+        </div>
+
+        <!-- حالة فك القفل بعد موافقة الماستر -->
+        <div class="hint-unlocked-box" id="hintUnlockedBox" style="display: none;">
+          <div class="quick-questions-label">
+            <span>✨ الأسئلة المقترحة (مساعدة معتمدة من الماستر):</span>
+          </div>
+          <div class="chips-container" id="quickQuestionsContainer">
+            <!-- أزرار الأسئلة السريعة تتولد ديناميكياً -->
+          </div>
+        </div>
+      </div>
+
+      <!-- سجل الأسئلة والمحادثة -->
+      <div class="chat-timeline-card" id="chatTimeline">
+        <div class="chat-empty-state" id="chatEmptyState">
+          <div class="empty-icon">💬</div>
+          <p>لا توجد أسئلة بعد.<br>اطرح أول سؤال لمعرفة الحيوان!</p>
+        </div>
+      </div>
+
+      <!-- شريط تحكم الماستر عند وصول سؤال جديد (للإجابة بنعم أو لا) -->
+      <div class="master-answer-bar" id="masterAnswerBar" style="display: none;">
+        <p>وصلك سؤال من المنافس: <span id="pendingQuestionText" style="color: #fbbf24;">"..."</span></p>
+        <div class="master-action-buttons">
+          <button class="btn btn-success" id="btnAnswerYes">
+            <span>✅ نـعـم</span>
+          </button>
+          <button class="btn btn-danger" id="btnAnswerNo">
+            <span>❌ لا</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- شريط إدخال الأسئلة وزر فتح الصورة (للمخمن) -->
+      <div class="guesser-action-zone" id="guesserControlZone">
+        <div class="chat-input-row">
+          <input type="text" id="questionInput" class="input-field" placeholder="اطرح سؤالاً إجابته نعم أو لا..." />
+          <button class="btn btn-primary btn-send" id="btnSendQuestion">إرسال 🚀</button>
+        </div>
+        <button class="btn btn-gold" id="btnRequestUnlock">
+          <span>🔓 خمن واطلب فتح الصورة! (متبقي <strong id="btnAttemptsLeftNum">3</strong> محاولات)</span>
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- نافذة طلب المساعدة للماستر للموافقة أو الرفض -->
+  <div class="modal-overlay" id="masterHintDecisionModal">
+    <div class="modal-content">
+      <div class="modal-icon">💡</div>
+      <h3 class="modal-title">طلب مساعدة من المنافس!</h3>
+      <p class="modal-desc">
+        قام المنافس (<span id="hintGuesserAvatar">🔍</span> <strong id="hintGuesserName">المنافس</strong>) بطلب مساعدة لكشف الأسئلة المقترحة.
+      </p>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+        هل توافق على منح هذه المساعدة له في هذه الجولة؟
+      </p>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-danger" id="btnMasterRejectHint" style="flex: 1;">
+          <span>❌ رفض</span>
+        </button>
+        <button class="btn btn-success" id="btnMasterAcceptHint" style="flex: 1;">
+          <span>✅ موافقة ومنح المساعدة</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة المخمن لإدخال الاسم عند طلب فتح الصورة -->
+  <div class="modal-overlay" id="guesserGuessModal">
+    <div class="modal-content">
+      <div class="modal-icon">🔓</div>
+      <h3 class="modal-title">خمن واطلب فتح الصورة</h3>
+      <p class="modal-desc">
+        لديك 3 محاولات فقط في الجولة! إذا أخطأت 3 مرات تعتبر خاسراً للجولة.<br>
+        المحاولات المتبقية: <strong id="modalAttemptsLeft" style="color: #fbbf24;">3</strong>
+      </p>
+      <input type="text" id="guessInputModal" class="input-field" placeholder="مثال: الأسد" style="text-align: center; font-size: 18px; font-weight: 800;" />
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="closeModal('guesserGuessModal')">إلغاء</button>
+        <button class="btn btn-gold" id="btnSubmitGuess" style="flex: 2;">إرسال للماستر 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة الماستر للموافقة أو الرفض على طلب فتح الصورة -->
+  <div class="modal-overlay" id="masterUnlockDecisionModal">
+    <div class="modal-content">
+      <div class="modal-icon">🔔</div>
+      <h3 class="modal-title">طلب فتح الصورة!</h3>
+      <p class="modal-desc">
+        قام المنافس (<span id="unlockGuesserAvatar"></span> <strong id="unlockGuesserName">المنافس</strong>) بتخمين:
+      </p>
+      <div style="font-size: 24px; font-weight: 900; color: #fbbf24; margin-bottom: 12px;" id="unlockGuessWord">
+        "الأسد"
+      </div>
+      <div style="font-size: 12px; color: #ef4444; margin-bottom: 16px;">
+        (في حال الرفض: سيتم خصم محاولة من المنافس، وفي حال استنفد 3 محاولات تكسب أنت الجولة)
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-danger" id="btnMasterRejectUnlock" style="flex: 1;">
+          <span>❌ خاطئة (رفض)</span>
+        </button>
+        <button class="btn btn-success" id="btnMasterAcceptUnlock" style="flex: 1;">
+          <span>✅ صحيحة (موافقة)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة نتيجة الجولة وكشف الصورة (Round Summary Modal) -->
+  <div class="modal-overlay" id="gameRevealModal">
+    <div class="modal-content">
+      <div class="modal-icon" id="revealModalIcon">🎉</div>
+      <h3 class="modal-title" id="revealModalTitle" style="color: #34d399;">مبروووك! تم كشف السر</h3>
+      <p class="modal-desc" id="revealModalDesc">
+        فائز الجولة: <strong id="revealWinnerName" style="color: #fbbf24;">المخمن</strong>!
+      </p>
+
+      <div class="reveal-preview-box">
+        <img id="revealSecretImg" src="" alt="السر المكشوف" />
+      </div>
+
+      <div style="font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 10px;" id="revealSecretName">
+        الأسد
+      </div>
+
+      <!-- عرض نتيجة المباراة الحالية بعد الجولة -->
+      <div class="round-scores-summary" id="roundScoresSummary">
+        <div class="rss-title">نقاط المباراة (أول من يصل إلى 3):</div>
+        <div class="rss-pills" id="roundScoresPills">
+          <!-- تتولد ديناميكياً -->
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="revealQuestionsTotal">5</div>
+          <div class="stat-label">عدد الأسئلة</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="revealAttemptsUsed">1/3</div>
+          <div class="stat-label">محاولات التخمين</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btnNewRound">
+        <span>تبديل الأدوار والجولة التالية 🔄</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- نافذة تتويج بطل المباراة الكبرى (3 نقاط كاملة) 🏆 -->
+  <div class="modal-overlay" id="matchChampionModal">
+    <div class="modal-content champion-modal-box">
+      <div class="champion-trophy-giant">🏆</div>
+      <h2 style="font-size: 24px; font-weight: 900; color: #fbbf24; margin-bottom: 6px;">بطل المباراة الكبرى!</h2>
+      <p style="font-size: 14px; color: #cbd5e1; margin-bottom: 16px;">
+        أول لاعب حقق 3 نقاط وتوج بطلاً للتحدي!
+      </p>
+
+      <div class="champion-card-center">
+        <div id="championAvatar" style="font-size: 48px; margin-bottom: 6px;">🦁</div>
+        <h3 id="championPlayerName" style="font-size: 22px; font-weight: 800; color: #fff;">أحمد</h3>
+        <div class="champion-badge-text">الفائز بنتيجة 3 نقاط ⭐⭐⭐</div>
+      </div>
+
+      <button class="btn btn-gold" id="btnRestartMatch" style="margin-top: 20px;">
+        <span>بدء مباراة جديدة من الصفر (0 - 0) 🔁</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- نافذة تثبيت التطبيق على الهاتف (Install PWA) -->
+  <div class="modal-overlay" id="installAppModal">
+    <div class="modal-content">
+      <div class="modal-icon">📲</div>
+      <h3 class="modal-title">تثبيت اللعبة في هاتفك</h3>
+      <p class="modal-desc">
+        يمكنك تشغيل اللعبة كتطبيق كامل بملء الشاشة وسرعة فائقة بدون شريط المتصفح!
+      </p>
+
+      <!-- خيار التثبيت المباشر (أندرويد / كروم) -->
+      <div id="nativeInstallSection" style="display: none; margin-bottom: 16px;">
+        <button class="btn btn-success" id="btnTriggerNativeInstall">
+          <span>تثبيت التطبيق بنقرة واحدة ⚡</span>
+        </button>
+      </div>
+
+      <!-- إرشادات الآيفون (Safari) -->
+      <div class="ios-install-guide">
+        <div style="font-weight: 800; color: #fbbf24; font-size: 13px; margin-bottom: 8px;">لهواتف الآيفون (Safari):</div>
+        <ol class="install-steps-list">
+          <li>اضغط على زر <strong>المشاركة (Share 📤)</strong> في أسفل متصفح Safari.</li>
+          <li>اسحب للأعلى واختر <strong>"إضافة إلى الشاشة الرئيسية" (Add to Home Screen ➕)</strong>.</li>
+          <li>اضغط على <strong>"إضافة" (Add)</strong> في أعلى الزاوية.</li>
+        </ol>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <button class="btn btn-secondary" onclick="closeModal('installAppModal')">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- استدعاء المكتبات والملفات البرمجية -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="animals.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
